@@ -25,15 +25,15 @@ sta = network.WLAN(network.STA_IF)
 # print(ap.ifconfig())
 
 # LED Config
-led_pin = 2
+led_pin = 23
 led = machine.Pin(led_pin, machine.Pin.OUT)
 # np = neopixel.NeoPixel(machine.Pin(15), 1)
 
 # Relays config
-r1_pin = 12
-r2_pin = 13
-r3_pin = 14
-r4_pin = 15
+r1_pin = 32
+r2_pin = 33
+r3_pin = 25
+r4_pin = 26
 relay1 = machine.Pin(r1_pin, machine.Pin.OUT)
 relay2 = machine.Pin(r2_pin, machine.Pin.OUT)
 relay3 = machine.Pin(r3_pin, machine.Pin.OUT)
