@@ -25,15 +25,15 @@ sta = network.WLAN(network.STA_IF)
 # print(ap.ifconfig())
 
 # LED Config
-led_pin = 23 
+led_pin = 2
 led = machine.Pin(led_pin, machine.Pin.OUT)
 # np = neopixel.NeoPixel(machine.Pin(15), 1)
 
 # Relays config
-r1_pin = 32
-r2_pin = 33
-r3_pin = 25
-r4_pin = 26
+r1_pin = 12
+r2_pin = 13
+r3_pin = 14
+r4_pin = 15
 relay1 = machine.Pin(r1_pin, machine.Pin.OUT)
 relay2 = machine.Pin(r2_pin, machine.Pin.OUT)
 relay3 = machine.Pin(r3_pin, machine.Pin.OUT)
@@ -83,6 +83,7 @@ def wifi_connect():
             oled.show()
             sta.active(False)
             time.sleep(1)
+            gc.collect()
             wifi_connect()
     except OSError as e:
         print(f"\nOSError: {e}")
@@ -91,6 +92,7 @@ def wifi_connect():
         oled.show()
         sta.active(False)
         time.sleep(1)
+        gc.collect()
         wifi_connect()
 
 def get_data():
@@ -171,12 +173,13 @@ def display_data(price_data, price):
     oled.text(f"RCEg: {price}", 0, 0)
     oled.show()
     range_price = price_data['max'] - price_data['min']
-    low = price_data['min'] + range_price * config.LOWER_THRESHOLD
-    high = price_data['min'] + range_price * config.UPPER_THRESHOLD
+    low = price_data['min'] + range_price * config.LOWER_THRESHOLD/100
+    high = price_data['min'] + range_price * config.UPPER_THRESHOLD/100
     if price < config.MINIMUM_SALE_PRICE:
         # np[0] = (0, 0, 255)  # Blue
         print("Price lower than 0")
         oled.text('B', 119, 0)
+        oled.show()
         relay1.value(0)
         relay2.value(0)
         relay3.value(0)
@@ -186,6 +189,7 @@ def display_data(price_data, price):
         # np[0] = (0, 255, 0)  # Green
         print("Green")
         oled.text('G', 119, 0)
+        oled.show()
         relay1.value(1)
         relay2.value(0)
         relay3.value(0)
@@ -195,6 +199,7 @@ def display_data(price_data, price):
         # np[0] = (255, 255, 0)  # Yellow
         print("Yellow")
         oled.text('Y', 119, 0)
+        oled.show()
         relay1.value(0)
         relay2.value(1)
         relay3.value(0)
@@ -204,13 +209,13 @@ def display_data(price_data, price):
         # np[0] = (255, 0, 0)  # Red
         print("Red")
         oled.text('R', 119, 0)
+        oled.show()
         relay1.value(0)
         relay2.value(0)
         relay3.value(1)
         relay4.value(0)
         print("Relay 3 ON")
     # np.write()
-    oled.show()
     gc.collect()
 
 def get_rce_prices():
