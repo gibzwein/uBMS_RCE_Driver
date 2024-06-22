@@ -175,6 +175,7 @@ def display_data(price_data, price):
     range_price = price_data['max'] - price_data['min']
     low = price_data['min'] + range_price * config.LOWER_THRESHOLD/100
     high = price_data['min'] + range_price * config.UPPER_THRESHOLD/100
+    print(range_price, low, high)
     if price < config.MINIMUM_SALE_PRICE:
         # np[0] = (0, 0, 255)  # Blue
         print("Price lower than 0")
