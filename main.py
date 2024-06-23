@@ -119,6 +119,9 @@ def get_data():
                     data = None
             else:
                 print(f"Error while retrieving data. Response code: {response.status_code}")
+                oled.fill(0)
+                oled.text(f'HTTP: {response.status_code}', 0, 0)
+                oled.show()
                 retry_count += 1
                 if retry_count < max_retries:
                     print(f"Retrying to fetch data in {5 * retry_count} seconds...")
