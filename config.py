@@ -1,3 +1,11 @@
-LOWER_THRESHOLD = 33        #in %
-UPPER_THRESHOLD = 66        #in %
-MINIMUM_SALE_PRICE = 0.00   #in PLN
+ssid = "YOUR_WIFI_SSID"         # replace with Your SSID
+password = "YOUR_WIFI_PASS"     # replace with Your PASS
+LOWER_THRESHOLD = 33            #in %
+UPPER_THRESHOLD = 66            #in %
+MINIMUM_SALE_PRICE = 0.00       #in PLN
+NUM_ENTRIES = 24                #number of quarters to charge storage
+REGISTER_ADDR = 5024            #number of holding register in HEX
+CHARGE_REGISTER_VALUE = 50      #Utility max charge amperage in DEC
+DISCHARGE_REGISTER_VALUE = 2    #Utility max discharge amperage in DEC
+BAUDRATE = 2400                 #Modbus baudrate
+SLAVE_ADDR = 5                  #Slave address in HEX

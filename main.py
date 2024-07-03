@@ -1,5 +1,5 @@
 import network
-import credentials
+# import credentials
 import urequests as requests
 import machine
 # import utime
@@ -11,13 +11,16 @@ import config
 import gc
 import ssd1306
 from machine import Pin, SoftI2C
+import uBMS_modbus
+import uBMS_WiFi
+import uBMS_Web
 
 # Move to credentials.py > import to main > done!
-ssid = credentials.ssid
-password = credentials.password
+# ssid = config.ssid
+# password = config.password
 
 # WiFi config
-sta = network.WLAN(network.STA_IF)
+# sta = network.WLAN(network.STA_IF)
 
 # # AP config
 # ap = network.WLAN(network.AP_IF)
@@ -49,51 +52,68 @@ print(i2c_devices)
 if len(i2c_devices) != 0:
     oled = ssd1306.SSD1306_I2C(oled_width, oled_height, i2c)
 
+# Define the pin for the button
+button_pin = 0  # For example, GPIO0 for ESP8266
+button = machine.Pin(button_pin, machine.Pin.IN, machine.Pin.PULL_UP)
+
+def button_handler(pin):
+    print("Button pressed")
+    oled.fill(0)
+    oled.text('AP Mode', 0, 0)
+    oled.show()
+    uBMS_Web.AP_start()
+
+button.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_handler)
+
 # Golbal variables
 rce_prices = None
+rce_prices_stats = None
+lowest_entries = None
 last_time = (0,0,0,0,0,0,0,0)
 current_price = None
 
-def wifi_connect():
-    try:
-        CONNECT_TIMEOUT = 20
-        print("Connecting to WiFi", end="")
-        sta.active(True)
-        time.sleep(1)
-        sta.connect(ssid, password)
-        oled.fill(0)
-        oled.text('Connecting WiFi', 0, 0)
-        oled.show()
-        while not sta.isconnected() and CONNECT_TIMEOUT > 0:
-            print(".", end="")
-            led.value(not led.value())
-            time.sleep(0.5)
-            CONNECT_TIMEOUT -= 1
-        if sta.isconnected():
-            print("\nWiFi Connected!")
-            oled.fill(0)
-            oled.text('WiFi Connected', 0, 0)
-            oled.show()
-            led.value(0)
-            ntptime.settime()
-        else:
-            print("\nFailed to connect to WiFi.")
-            oled.fill(0)
-            oled.text('WiFi Failed', 0, 0)
-            oled.show()
-            sta.active(False)
-            time.sleep(1)
-            gc.collect()
-            wifi_connect()
-    except OSError as e:
-        print(f"\nOSError: {e}")
-        oled.fill(0)
-        oled.text('WiFi Error', 0, 0)
-        oled.show()
-        sta.active(False)
-        time.sleep(1)
-        gc.collect()
-        wifi_connect()
+uBMS_WiFi.wifi_connect()
+
+# def wifi_connect():
+#     try:
+#         CONNECT_TIMEOUT = 20
+#         print("Connecting to WiFi", end="")
+#         sta.active(True)
+#         time.sleep(1)
+#         sta.connect(ssid, password)
+#         oled.fill(0)
+#         oled.text('Connecting WiFi', 0, 0)
+#         oled.show()
+#         while not sta.isconnected() and CONNECT_TIMEOUT > 0:
+#             print(".", end="")
+#             led.value(not led.value())
+#             time.sleep(0.5)
+#             CONNECT_TIMEOUT -= 1
+#         if sta.isconnected():
+#             print("\nWiFi Connected!")
+#             oled.fill(0)
+#             oled.text('WiFi Connected', 0, 0)
+#             oled.show()
+#             led.value(0)
+#             ntptime.settime()
+#         else:
+#             print("\nFailed to connect to WiFi.")
+#             oled.fill(0)
+#             oled.text('WiFi Failed', 0, 0)
+#             oled.show()
+#             sta.active(False)
+#             time.sleep(1)
+#             gc.collect()
+#             wifi_connect()
+#     except OSError as e:
+#         print(f"\nOSError: {e}")
+#         oled.fill(0)
+#         oled.text('WiFi Error', 0, 0)
+#         oled.show()
+#         sta.active(False)
+#         time.sleep(1)
+#         gc.collect()
+#         wifi_connect()
 
 def get_data():
     max_retries = 3
@@ -105,6 +125,9 @@ def get_data():
             date_string = time_utils.get_api_date()
 
             url = f"https://api.raporty.pse.pl/api/rce-pln?$filter=doba eq '{date_string}'&$select=rce_pln,udtczas"
+            oled.fill(0)
+            oled.text('Getting PSE data', 0, 0)
+            oled.show()
             print("Requesting URL:", url)
             headers = {'User-Agent': 'Mozilla/5.0'}
             response = requests.get(url, headers=headers, timeout = 10)
@@ -112,11 +135,10 @@ def get_data():
                 print('Data fetched')
                 gc.collect()
                 try:
-                    data = json.loads(response.text)
-                    return data
+                    return json.loads(response.text)
                 except ValueError:
                     print("Error decoding JSON response")
-                    data = None
+                    return None
             else:
                 print(f"Error while retrieving data. Response code: {response.status_code}")
                 oled.fill(0)
@@ -142,7 +164,7 @@ def get_data():
 
 def parse_data(json_data):
     parsed_data = []
-
+    # print(len(json_data['value']))
     for row in json_data['value']:
         date_str = row['udtczas']
         unix_timestamp_to = time_utils.get_timestamp_from_datestring(row['udtczas'])
@@ -156,6 +178,7 @@ def parse_data(json_data):
             'price': row['rce_pln']
         })
     print('Data parsed')
+    print(len(parsed_data))
     gc.collect()
     return parsed_data
 
@@ -224,29 +247,72 @@ def display_data(price_data, price):
 
 def get_rce_prices():
     global rce_prices
+    global rce_prices_stats
+    global lowest_entries
+    rce_prices = None
+    rce_prices_stats = None
+    lowest_entries = None
+    # print(rce_prices, rce_prices_stats)
     data = get_data()
-    if data:
-        rce_prices = parse_data(data)
-        if rce_prices:
-            averages = calculate_average(rce_prices)
-            gc.collect()
-            return averages
-    return None
+    rce_prices = parse_data(data)
+    rce_prices_stats = calculate_average(rce_prices)
+    lowest_entries = get_lowest_entries(rce_prices)
+    print(len(rce_prices), len(rce_prices_stats), len(lowest_entries))
 
 def get_current_price(now_timestamp):
-    if rce_prices == None:
+    if rce_prices is None:
         return None
+
+    # Debugowanie wartości rce_prices
+    # print("Debug: rce_prices =", rce_prices)
+
+    if not isinstance(rce_prices, list):
+        print("Error: rce_prices is not a list.")
+        return None
+
     for row in rce_prices:
+        if not isinstance(row, dict):
+            print("Error: row is not a dictionary.")
+            return None
+
         if now_timestamp >= row['timestamp_from'] and now_timestamp < row['timestamp_to']:
             print(row['price'], now_timestamp, row)
             led.value(not led.value())
             return row['price']
+
     gc.collect()
     return None
 
+
+def get_lowest_entries(parsed_data):
+    # Sort the data by price in ascending order and get the first NUM entries
+    sorted_data = sorted(parsed_data, key=lambda x: x['price'])
+    lowest_entries = sorted_data[:config.NUM_ENTRIES]
+
+    # Print the entries with the lowest price
+    # for entry in lowest_entries:
+    #     print(entry)
+
+    return lowest_entries
+
+def is_time_in_range(start_timestamp, end_timestamp):
+    now_timestamp = time_utils.get_current_time()
+    # modbus_time = time.localtime(now_timestamp)
+    # print("Modbus time: ", modbus_time)
+    return start_timestamp <= now_timestamp <= end_timestamp
+
+def check_and_send_modbus_command():
+    if lowest_entries:
+        for entry in lowest_entries:
+            if is_time_in_range(entry['timestamp_from'], entry['timestamp_to']):
+                uBMS_modbus.send_modbus_command_charge()
+            else:
+                uBMS_modbus.send_modbus_command_discharge()
+                break
+
 while True:
-    if not sta.isconnected():
-        wifi_connect()
+    if not uBMS_WiFi.sta.isconnected():
+        uBMS_WiFi.wifi_connect()
 
     if rce_prices == None:
         rce_prices = get_rce_prices()
@@ -260,6 +326,7 @@ while True:
     if last_time is None or last_time[4] != now_time[4]:
         print('Day changed, fetching new data')
         get_rce_prices()
+
         last_time = now_time
 
     current_price = get_current_price(now)
@@ -267,8 +334,11 @@ while True:
         averages = calculate_average(rce_prices)
         display_data(averages, current_price)
 
+    check_and_send_modbus_command()
+ 
     print(last_time)
     print(now_time)
+    print(len(rce_prices))
 
     # Handle LCD
     # Handle relay
