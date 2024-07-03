@@ -4,9 +4,6 @@ import machine
 import uBMS_WiFi
 import config
 
-# led_pin = 2
-# led = machine.Pin(led_pin, machine.Pin.OUT)
-
 def AP_start():
     uBMS_WiFi.sta.active(False)
     print("STA mode disactivated")
@@ -16,10 +13,6 @@ def AP_start():
     uBMS_WebPage()
 
 def web_page():
-    # if led.value() == 1:
-    #     gpio_state = "ON"
-    # else:
-    #     gpio_state = "OFF"
   
     html = """<html lang="en">
 <head>
@@ -200,7 +193,6 @@ def save_variables(ssid, password, lower_threshold, upper_threshold, minimum_sal
             for line in lines:
                 file.write(line)
         print("Successfully saved config to config.py")
-        # Uncomment the following line to reset the machine if needed
         machine.reset()
     except OSError as e:
         print(f"Failed to save config: {e}")
@@ -266,19 +258,10 @@ def uBMS_WebPage():
     while True:
         conn, addr = s.accept()
         print('Got a connection from %s' % str(addr))
-        request = conn.recv(2048)  # Zwiększ rozmiar bufora
+        request = conn.recv(2048)
         print(request)
         request_str = request.decode('utf-8')
         print('Content = %s' % request_str)
-  
-        # led_on = request_str.find('/?led=on')
-        # led_off = request_str.find('/?led=off')
-        # if led_on == 6:
-        #     print('LED ON')
-        #     led.value(1)
-        # if led_off == 6:
-        #     print('LED OFF')
-        #     led.value(0)
   
         if 'POST /configure' in request_str:
             parts = request_str.split('\r\n\r\n')

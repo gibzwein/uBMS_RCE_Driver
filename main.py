@@ -15,22 +15,9 @@ import uBMS_modbus
 import uBMS_WiFi
 import uBMS_Web
 
-# Move to credentials.py > import to main > done!
-# ssid = config.ssid
-# password = config.password
-
-# WiFi config
-# sta = network.WLAN(network.STA_IF)
-
-# # AP config
-# ap = network.WLAN(network.AP_IF)
-# ap.active(True)
-# print(ap.ifconfig())
-
 # LED Config
 led_pin = 23
 led = machine.Pin(led_pin, machine.Pin.OUT)
-# np = neopixel.NeoPixel(machine.Pin(15), 1)
 
 # Relays config
 r1_pin = 32
@@ -73,47 +60,6 @@ last_time = (0,0,0,0,0,0,0,0)
 current_price = None
 
 uBMS_WiFi.wifi_connect()
-
-# def wifi_connect():
-#     try:
-#         CONNECT_TIMEOUT = 20
-#         print("Connecting to WiFi", end="")
-#         sta.active(True)
-#         time.sleep(1)
-#         sta.connect(ssid, password)
-#         oled.fill(0)
-#         oled.text('Connecting WiFi', 0, 0)
-#         oled.show()
-#         while not sta.isconnected() and CONNECT_TIMEOUT > 0:
-#             print(".", end="")
-#             led.value(not led.value())
-#             time.sleep(0.5)
-#             CONNECT_TIMEOUT -= 1
-#         if sta.isconnected():
-#             print("\nWiFi Connected!")
-#             oled.fill(0)
-#             oled.text('WiFi Connected', 0, 0)
-#             oled.show()
-#             led.value(0)
-#             ntptime.settime()
-#         else:
-#             print("\nFailed to connect to WiFi.")
-#             oled.fill(0)
-#             oled.text('WiFi Failed', 0, 0)
-#             oled.show()
-#             sta.active(False)
-#             time.sleep(1)
-#             gc.collect()
-#             wifi_connect()
-#     except OSError as e:
-#         print(f"\nOSError: {e}")
-#         oled.fill(0)
-#         oled.text('WiFi Error', 0, 0)
-#         oled.show()
-#         sta.active(False)
-#         time.sleep(1)
-#         gc.collect()
-#         wifi_connect()
 
 def get_data():
     max_retries = 3
@@ -164,7 +110,6 @@ def get_data():
 
 def parse_data(json_data):
     parsed_data = []
-    # print(len(json_data['value']))
     for row in json_data['value']:
         date_str = row['udtczas']
         unix_timestamp_to = time_utils.get_timestamp_from_datestring(row['udtczas'])
@@ -203,7 +148,6 @@ def display_data(price_data, price):
     high = price_data['min'] + range_price * config.UPPER_THRESHOLD/100
     print(range_price, low, high)
     if price < config.MINIMUM_SALE_PRICE:
-        # np[0] = (0, 0, 255)  # Blue
         print("Price lower than 0")
         oled.text('B', 119, 0)
         oled.show()
@@ -213,7 +157,6 @@ def display_data(price_data, price):
         relay4.value(1)
         print("Relay 4 ON")
     elif price < low:
-        # np[0] = (0, 255, 0)  # Green
         print("Green")
         oled.text('G', 119, 0)
         oled.show()
@@ -223,7 +166,6 @@ def display_data(price_data, price):
         relay4.value(0)
         print("Relay 1 ON")
     elif price < high:
-        # np[0] = (255, 255, 0)  # Yellow
         print("Yellow")
         oled.text('Y', 119, 0)
         oled.show()
@@ -233,7 +175,6 @@ def display_data(price_data, price):
         relay4.value(0)
         print("Relay 2 ON")
     else:
-        # np[0] = (255, 0, 0)  # Red
         print("Red")
         oled.text('R', 119, 0)
         oled.show()
@@ -252,7 +193,6 @@ def get_rce_prices():
     rce_prices = None
     rce_prices_stats = None
     lowest_entries = None
-    # print(rce_prices, rce_prices_stats)
     data = get_data()
     rce_prices = parse_data(data)
     rce_prices_stats = calculate_average(rce_prices)
@@ -262,9 +202,6 @@ def get_rce_prices():
 def get_current_price(now_timestamp):
     if rce_prices is None:
         return None
-
-    # Debugowanie wartości rce_prices
-    # print("Debug: rce_prices =", rce_prices)
 
     if not isinstance(rce_prices, list):
         print("Error: rce_prices is not a list.")
@@ -288,17 +225,10 @@ def get_lowest_entries(parsed_data):
     # Sort the data by price in ascending order and get the first NUM entries
     sorted_data = sorted(parsed_data, key=lambda x: x['price'])
     lowest_entries = sorted_data[:config.NUM_ENTRIES]
-
-    # Print the entries with the lowest price
-    # for entry in lowest_entries:
-    #     print(entry)
-
     return lowest_entries
 
 def is_time_in_range(start_timestamp, end_timestamp):
     now_timestamp = time_utils.get_current_time()
-    # modbus_time = time.localtime(now_timestamp)
-    # print("Modbus time: ", modbus_time)
     return start_timestamp <= now_timestamp <= end_timestamp
 
 def check_and_send_modbus_command():
@@ -320,9 +250,6 @@ while True:
     now = time_utils.get_current_time()
     now_time = time.localtime(now)
 
-    # if last_time == None:
-    #     last_time = now_time
-
     if last_time is None or last_time[4] != now_time[4]:
         print('Day changed, fetching new data')
         get_rce_prices()
@@ -339,9 +266,6 @@ while True:
     print(last_time)
     print(now_time)
     print(len(rce_prices))
-
-    # Handle LCD
-    # Handle relay
 
     gc.collect()
     print("Free memory: ", gc.mem_free())
