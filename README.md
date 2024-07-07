@@ -14,8 +14,8 @@ Potrzebne elementy:
   4. Przewody do połączenia ESP32 z OLED
   5. Konwerter USB=>UART
 
-Opcjonalnie:
-Ładnie pasuje Kradex Z110J
+Opcjonalnie:\
+Obudowa - ładnie pasuje Kradex Z110J
   ![IMG_20240707_101852_938~2](https://github.com/gibzwein/uBMS_RCE_Driver/assets/52330511/c0a0c837-0158-42e3-85c1-1b78012ca6d5)
 
 
