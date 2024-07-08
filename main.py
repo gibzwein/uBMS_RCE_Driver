@@ -79,6 +79,7 @@ def get_data():
             response = requests.get(url, headers=headers, timeout = 10)
             if response.status_code == 200:
                 print('Data fetched')
+                led.value(0)
                 gc.collect()
                 try:
                     return json.loads(response.text)
@@ -96,8 +97,7 @@ def get_data():
                     time.sleep(5 * retry_count)
                 else:
                     print("Exceeded maximum number of data retrieval attempts.")
-            led.value(0)
-            return None
+                    return None
         except Exception as e:
             print(f"An error occurred while retrieving data: {e}")
             retry_count += 1
@@ -107,6 +107,7 @@ def get_data():
             else:
                 print("Exceeded maximum number of data retrieval attempts.")
                 return None
+    return None
 
 def parse_data(json_data):
     parsed_data = []
